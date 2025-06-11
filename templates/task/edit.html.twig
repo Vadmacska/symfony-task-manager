@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nowe zadanie{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <h1 class="mb-4">Dodaj nowe zadanie</h1>
+    {{ include('task/_form.html.twig', {'button_label': 'Zapisz'}) }}
+    <a href="{{ path('task_index') }}" class="btn btn-outline-secondary mt-3">← Wróć do listy</a>
+</div>
+{% endblock %}

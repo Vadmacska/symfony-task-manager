@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Szczegóły zadania{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <h1 class="mb-4">{{ task.title }}</h1>
+
+    <div class="row mb-3">
+        <div class="col-md-2 fw-semibold">Opis:</div>
+        <div class="col-md-10">{{ task.description }}</div>
+
+        <div class="col-md-2 fw-semibold">Status:</div>
+        <div class="col-md-10">
+            {% set status_badge_class = {
+                'Wykonany': 'bg-success',
+                'Oczekujący': 'bg-primary',
+                'Odrzucony': 'bg-danger'
+            }[task.status]|default('bg-secondary') %}
+            <span class="badge {{ status_badge_class }} text-white ms-2">{{ task.status }}</span>
+        </div>
+
+        {% if task.deadline %}
+            <div class="col-md-2 fw-semibold">Termin:</div>
+            <div class="col-md-10">{{ task.deadline|date('Y-m-d') }}</div>
+        {% endif %}
+    </div>
+
+
+    <div class="mb-4">
+        <p><strong>Podzadania:</strong></p>
+        {% if task.subtasks|length > 0 %}
+            <ul class="list-group">
+                {% for subtask in task.subtasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ subtask.title }}
+                        <span class="badge bg-secondary">{{ subtask.status }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="alert alert-warning">Brak podzadań</div>
+        {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ path('task_edit', {'id': task.id}) }}" class="btn btn-primary">✏️ Edytuj</a>
+        <a href="{{ path('task_index') }}" class="btn btn-outline-secondary">← Wróć do listy</a>
+    </div>
+</div>
+{% endblock %}

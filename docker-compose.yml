@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: symfony_app
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "4444:80"
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        composer install &&
+        echo 'Tworzę bazę danych jeśli jej nie ma' &&
+        php bin/console doctrine:database:create --if-not-exists &&
+        echo 'Wykonuję migrację' &&
+        php bin/console doctrine:migrations:migrate --no-interaction &&
+        if [ ! -f .admin_created ]; then
+          echo 'Tworzę użytkownika admin...';
+          php bin/console app:create-admin;
+          touch .admin_created;
+        fi &&
+        apache2-foreground
+      "
+
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: task_db
+      MYSQL_USER: symfony
+      MYSQL_PASSWORD: symfony
+    ports:
+      - "4445:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

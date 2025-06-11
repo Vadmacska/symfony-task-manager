@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Swimlane{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <h1 class="mb-4">Swimlane</h1>
+    <a href="{{ path('task_index') }}" class="btn btn-outline-secondary mb-3">← Wróć do listy</a>
+
+    <div class="alert alert-danger d-none" id="error-box"></div>
+    <div class="alert alert-success d-none" id="success-box"></div>
+
+    {% set statuses = {
+        'Oczekujący': {label: 'Oczekujący', class: 'primary', icon: '⏳'},
+        'Wykonany': {label: 'Wykonany', class: 'success', icon: '✅'},
+        'Odrzucony': {label: 'Odrzucony', class: 'danger', icon: '❌'}
+    } %}
+
+    <div class="row g-4">
+        {% for key, status in statuses %}
+            <div class="col-md-4">
+                <div class="card border-{{ status.class }}">
+                    <div class="card-header bg-{{ status.class }} text-white text-center fw-bold">
+                        {{ status.icon }} {{ status.label }}
+                    </div>
+                    <div
+                        id="lane-{{ key }}"
+                        class="card-body bg-light min-vh-50"
+                        data-status="{{ key }}"
+                    >
+                        {% for task in tasks %}
+                            {% if task.status == key %}
+                                <div
+                                    id="task-{{ task.id }}"
+                                    class="card mb-2 shadow-sm"
+                                    draggable="true"
+                                    data-id="{{ task.id }}"
+                                >
+                                    <div class="card-body p-2 position-relative">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <h6 class="card-title mb-0 text-truncate" title="{{ task.title }}">
+                                                {{ task.title }}
+                                            </h6>
+                                            <span class="badge bg-{{ status.class }} small">{{ status.label }}</span>
+                                        </div>
+                                        <p class="card-text small text-muted mb-1">
+                                            {{ task.description|length > 100 ? task.description|slice(0, 100) ~ '…' : task.description }}
+                                        </p>
+                                        <p class="mb-1 small text-muted">
+                                            <strong>Termin:</strong> {{ task.deadline ? task.deadline|date('Y-m-d') : 'brak' }}
+                                        </p>
+                                        <p class="mb-0 small text-muted">
+                                            <strong>Autor:</strong> {{ task.user.email }}
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const lanes = document.querySelectorAll('[id^="lane-"]');
+        const errorBox = document.getElementById('error-box');
+        const successBox = document.getElementById('success-box');
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove('d-none');
+            successBox.classList.add('d-none');
+        }
+
+        function showSuccess(message) {
+            successBox.textContent = message;
+            successBox.classList.remove('d-none');
+            errorBox.classList.add('d-none');
+        }
+
+        lanes.forEach(lane => {
+            new Sortable(lane, {
+                group: 'shared',
+                animation: 150,
+                onEnd: function (evt) {
+                    const taskElement = evt.item;
+                    const taskId = taskElement.dataset.id;
+                    const newStatus = evt.to.dataset.status;
+
+                    fetch(`/api/task/${taskId}/status`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Błąd zapisu");
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        showSuccess("Status zaktualizowany");
+                        
+                        const badge = taskElement.querySelector('.badge');
+                        if (badge) {
+                            const statusMap = {
+                                'Oczekujący': { label: 'Oczekujący', class: 'primary' },
+                                'Wykonany': { label: 'Wykonany', class: 'success' },
+                                'Odrzucony': { label: 'Odrzucony', class: 'danger' }
+                            };
+
+                            const newBadge = statusMap[newStatus];
+                            badge.className = 'badge bg-' + newBadge.class + ' small';
+                            badge.textContent = newBadge.label;
+                        }
+                    })
+                    .catch(error => {
+                        showError("Nie udało się zapisać zmiany statusu");
+                        console.error(error);
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
