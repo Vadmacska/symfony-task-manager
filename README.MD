@@ -21,3 +21,7 @@ Wystarczy jedno polecenie:
 
 ```bash
 docker compose up --build
+
+
+Login: admin@example.com
+hasło: admin123
